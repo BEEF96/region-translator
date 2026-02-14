@@ -16,9 +16,10 @@ import android.content.pm.PackageManager
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var statusText: TextView
-    private lateinit var btnOverlay: Button
+    private lateinit var status: TextView
+    private lateinit var btnGrantOverlay: Button
     private lateinit var btnStart: Button
+    private var btnStop: Button? = null
 
     private val REQ_CAPTURE = 1001
     private val REQ_NOTIF = 1002
@@ -27,14 +28,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // ✅ 레이아웃에 있는 id 기준으로 안전하게 가져오기
-        statusText = findViewById(R.id.statusText)
-        btnOverlay = findViewById(R.id.btnOverlayPermission)
+        // ✅ activity_main.xml 실제 id에 맞춤
+        status = findViewById(R.id.status)
+        btnGrantOverlay = findViewById(R.id.btnGrantOverlay)
         btnStart = findViewById(R.id.btnStart)
+        btnStop = try { findViewById<Button>(R.id.btnStop) } catch (_: Exception) { null }
 
-        btnOverlay.setOnClickListener {
-            openOverlayPermission()
-        }
+        btnGrantOverlay.setOnClickListener { openOverlayPermission() }
 
         btnStart.setOnClickListener {
             // 1) Android 13+ 알림 권한
@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
                 ) == PackageManager.PERMISSION_GRANTED
 
                 if (!granted) {
-                    statusText.text = "상태: 알림 권한 요청 중..."
+                    status.text = "상태: 알림 권한 요청 중..."
                     ActivityCompat.requestPermissions(
                         this,
                         arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
@@ -57,13 +57,18 @@ class MainActivity : AppCompatActivity() {
 
             // 2) 오버레이 권한 확인
             if (!Settings.canDrawOverlays(this)) {
-                statusText.text = "상태: 오버레이 권한 필요"
+                status.text = "상태: 오버레이 권한 필요"
                 openOverlayPermission()
                 return@setOnClickListener
             }
 
             // 3) 화면 캡처 권한 요청
             requestScreenCapture()
+        }
+
+        btnStop?.setOnClickListener {
+            stopService(Intent(this, OverlayCaptureService::class.java))
+            status.text = "상태: 중지됨"
         }
     }
 
@@ -77,7 +82,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestScreenCapture() {
         val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        statusText.text = "상태: 화면 캡처 권한 요청..."
+        status.text = "상태: 화면 캡처 권한 요청..."
         startActivityForResult(mpm.createScreenCaptureIntent(), REQ_CAPTURE)
     }
 
@@ -86,7 +91,7 @@ class MainActivity : AppCompatActivity() {
 
         if (requestCode == REQ_CAPTURE) {
             if (resultCode != Activity.RESULT_OK || data == null) {
-                statusText.text = "상태: 화면 캡처 권한 거부됨"
+                status.text = "상태: 화면 캡처 권한 거부됨"
                 return
             }
 
@@ -96,7 +101,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             ContextCompat.startForegroundService(this, svc)
-            statusText.text = "상태: 실행 중"
+            status.text = "상태: 실행 중"
         }
     }
 
@@ -109,7 +114,7 @@ class MainActivity : AppCompatActivity() {
 
         if (requestCode == REQ_NOTIF) {
             val ok = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
-            statusText.text = if (ok) "상태: 알림 권한 허용됨" else "상태: 알림 권한 거부됨(작동 제한)"
+            status.text = if (ok) "상태: 알림 권한 허용됨" else "상태: 알림 권한 거부됨(작동 제한)"
         }
     }
 }
