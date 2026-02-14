@@ -28,7 +28,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // ✅ activity_main.xml 실제 id에 맞춤
         status = findViewById(R.id.status)
         btnGrantOverlay = findViewById(R.id.btnGrantOverlay)
         btnStart = findViewById(R.id.btnStart)
@@ -37,7 +36,6 @@ class MainActivity : AppCompatActivity() {
         btnGrantOverlay.setOnClickListener { openOverlayPermission() }
 
         btnStart.setOnClickListener {
-            // 1) Android 13+ 알림 권한
             if (Build.VERSION.SDK_INT >= 33) {
                 val granted = ContextCompat.checkSelfPermission(
                     this,
@@ -55,14 +53,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // 2) 오버레이 권한 확인
             if (!Settings.canDrawOverlays(this)) {
                 status.text = "상태: 오버레이 권한 필요"
                 openOverlayPermission()
                 return@setOnClickListener
             }
 
-            // 3) 화면 캡처 권한 요청
             requestScreenCapture()
         }
 
