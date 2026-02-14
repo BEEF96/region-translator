@@ -17,6 +17,9 @@ import android.content.pm.PackageManager
 class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
+    private lateinit var btnOverlay: Button
+    private lateinit var btnStart: Button
+
     private val REQ_CAPTURE = 1001
     private val REQ_NOTIF = 1002
 
@@ -24,15 +27,17 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        // ✅ 레이아웃에 있는 id 기준으로 안전하게 가져오기
         statusText = findViewById(R.id.statusText)
+        btnOverlay = findViewById(R.id.btnOverlayPermission)
+        btnStart = findViewById(R.id.btnStart)
 
-        val btnOverlay: Button = findViewById(R.id.btnOverlayPermission)
-        val btnStart: Button = findViewById(R.id.btnStart)
-
-        btnOverlay.setOnClickListener { openOverlayPermission() }
+        btnOverlay.setOnClickListener {
+            openOverlayPermission()
+        }
 
         btnStart.setOnClickListener {
-            // Android 13+ 알림 권한 먼저
+            // 1) Android 13+ 알림 권한
             if (Build.VERSION.SDK_INT >= 33) {
                 val granted = ContextCompat.checkSelfPermission(
                     this,
@@ -50,14 +55,14 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            // 오버레이 권한 확인
+            // 2) 오버레이 권한 확인
             if (!Settings.canDrawOverlays(this)) {
                 statusText.text = "상태: 오버레이 권한 필요"
                 openOverlayPermission()
                 return@setOnClickListener
             }
 
-            // 화면 캡처 권한 팝업 띄우기
+            // 3) 화면 캡처 권한 요청
             requestScreenCapture()
         }
     }
