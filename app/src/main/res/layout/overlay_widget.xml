@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="320dp"
+    android:layout_height="340dp">
+
+    <!-- 전체 위젯 드래그/리사이즈 가능한 선택 영역 -->
+    <com.example.regiontranslator.RegionSelectorView
+        android:id="@+id/selector"
+        android:layout_width="320dp"
+        android:layout_height="200dp" />
+
+    <!-- Controls -->
+    <LinearLayout
+        android:id="@+id/controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:orientation="horizontal"
+        android:layout_marginTop="210dp">
+
+        <Button
+            android:id="@+id/btnTranslateOnce"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="번역 1회" />
+
+        <Button
+            android:id="@+id/btnToggleAuto"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="자동: OFF" />
+
+        <Button
+            android:id="@+id/btnClose"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="닫기" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/tvResult"
+        android:layout_width="320dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="260dp"
+        android:padding="10dp"
+        android:text="(번역 결과가 여기에 표시됩니다)"
+        android:textColor="@android:color/white"
+        android:background="@android:color/black"
+        android:alpha="0.78"
+        android:textSize="14sp" />
+
+</FrameLayout>
