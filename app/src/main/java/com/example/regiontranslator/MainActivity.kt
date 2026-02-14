@@ -1,7 +1,6 @@
 package com.example.regiontranslator
 
 import android.app.Activity
-import android.content.Context
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -11,80 +10,101 @@ import android.provider.Settings
 import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var status: TextView
-    private lateinit var btnStop: Button
-
-    private val REQUEST_OVERLAY = 101
-    private val REQUEST_CAPTURE = 102
+    private lateinit var statusText: TextView
+    private val REQ_CAPTURE = 1001
+    private val REQ_NOTIF = 1002
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        status = findViewById(R.id.status)
-        btnStop = findViewById(R.id.btnStop)
+        statusText = findViewById(R.id.statusText)
 
-        findViewById<Button>(R.id.btnGrantOverlay).setOnClickListener {
-            requestOverlayPermission()
-        }
+        val btnOverlay: Button = findViewById(R.id.btnOverlayPermission)
+        val btnStart: Button = findViewById(R.id.btnStart)
 
-        findViewById<Button>(R.id.btnStart).setOnClickListener {
+        btnOverlay.setOnClickListener { openOverlayPermission() }
+
+        btnStart.setOnClickListener {
+            // Android 13+ 알림 권한 먼저
+            if (Build.VERSION.SDK_INT >= 33) {
+                val granted = ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (!granted) {
+                    statusText.text = "상태: 알림 권한 요청 중..."
+                    ActivityCompat.requestPermissions(
+                        this,
+                        arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                        REQ_NOTIF
+                    )
+                    return@setOnClickListener
+                }
+            }
+
+            // 오버레이 권한 확인
             if (!Settings.canDrawOverlays(this)) {
-                status.text = "상태: 오버레이 권한이 필요해요."
-                requestOverlayPermission()
+                statusText.text = "상태: 오버레이 권한 필요"
+                openOverlayPermission()
                 return@setOnClickListener
             }
-            requestScreenCapture()
-        }
 
-        btnStop.setOnClickListener {
-            stopService(Intent(this, OverlayCaptureService::class.java))
-            status.text = "상태: 중지됨"
-            btnStop.isEnabled = false
+            // 화면 캡처 권한 팝업 띄우기
+            requestScreenCapture()
         }
     }
 
-    private fun requestOverlayPermission() {
-        if (Settings.canDrawOverlays(this)) {
-            status.text = "상태: 오버레이 권한 OK"
-            return
-        }
+    private fun openOverlayPermission() {
         val intent = Intent(
             Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
             Uri.parse("package:$packageName")
         )
-        startActivityForResult(intent, REQUEST_OVERLAY)
+        startActivity(intent)
     }
 
     private fun requestScreenCapture() {
-        val mpm = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
-        startActivityForResult(mpm.createScreenCaptureIntent(), REQUEST_CAPTURE)
+        val mpm = getSystemService(MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
+        statusText.text = "상태: 화면 캡처 권한 요청..."
+        startActivityForResult(mpm.createScreenCaptureIntent(), REQ_CAPTURE)
     }
 
-    @Deprecated("Deprecated in Java")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
 
-        when (requestCode) {
-            REQUEST_OVERLAY -> {
-                status.text = if (Settings.canDrawOverlays(this)) "상태: 오버레이 권한 OK" else "상태: 오버레이 권한 거부됨"
+        if (requestCode == REQ_CAPTURE) {
+            if (resultCode != Activity.RESULT_OK || data == null) {
+                statusText.text = "상태: 화면 캡처 권한 거부됨"
+                return
             }
-            REQUEST_CAPTURE -> {
-                if (resultCode == Activity.RESULT_OK && data != null) {
-                    status.text = "상태: 캡처 권한 OK, 오버레이 시작"
-                    val svc = Intent(this, OverlayCaptureService::class.java).apply {
-                        putExtra(OverlayCaptureService.EXTRA_RESULT_CODE, resultCode)
-                        putExtra(OverlayCaptureService.EXTRA_RESULT_DATA, data)
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) startForegroundService(svc) else startService(svc)
-                    btnStop.isEnabled = true
-                } else {
-                    status.text = "상태: 캡처 권한 거부됨"
-                }
+
+            val svc = Intent(this, OverlayCaptureService::class.java).apply {
+                putExtra("resultCode", resultCode)
+                putExtra("data", data)
             }
+
+            ContextCompat.startForegroundService(this, svc)
+            statusText.text = "상태: 실행 중"
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (requestCode == REQ_NOTIF) {
+            val ok = grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED
+            statusText.text = if (ok) "상태: 알림 권한 허용됨" else "상태: 알림 권한 거부됨(작동 제한)"
         }
     }
 }
