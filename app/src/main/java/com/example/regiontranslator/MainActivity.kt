@@ -114,3 +114,39 @@ class MainActivity : AppCompatActivity() {
         }
     }
 }
+private fun checkUpdate() {
+    Thread {
+        try {
+            val url = java.net.URL("https://api.github.com/repos/BEEF96/region-translator/releases/latest")
+            val conn = url.openConnection() as java.net.HttpURLConnection
+            conn.connectTimeout = 5000
+            conn.readTimeout = 5000
+
+            val response = conn.inputStream.bufferedReader().use { it.readText() }
+
+            val latestTag = Regex("\"tag_name\":\"(.*?)\"")
+                .find(response)?.groupValues?.get(1)
+
+            val apkUrl = Regex("\"browser_download_url\":\"(.*?app-debug.apk)\"")
+                .find(response)?.groupValues?.get(1)
+
+            runOnUiThread {
+                if (latestTag != null && apkUrl != null) {
+                    status.text = "최신버전: $latestTag\n업데이트 가능"
+
+                    btnStart.setOnLongClickListener {
+                        val intent = Intent(Intent.ACTION_VIEW)
+                        intent.data = Uri.parse(apkUrl)
+                        startActivity(intent)
+                        true
+                    }
+                }
+            }
+
+        } catch (e: Exception) {
+            runOnUiThread {
+                status.text = "업데이트 확인 실패"
+            }
+        }
+    }.start()
+}
