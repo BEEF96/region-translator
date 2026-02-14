@@ -17,13 +17,17 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      # ✅ gradle-version 고정 절대 X
-      # ✅ 프로젝트에 포함된 gradle wrapper(gradlew)를 그대로 사용
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --stacktrace
+      # ✅ Gradle을 Actions에서 설치 (wrapper 필요 없음)
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.5"
+
+      - name: Build Debug APK (no wrapper)
+        run: gradle :app:assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
